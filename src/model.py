@@ -5,6 +5,24 @@
 # ! pip install -e .
 
 https://cbmm.mit.edu/video/tutorial-recurrent-neural-networks-cognitive-neuroscience
+
+Recurrent neural network for firing rate estimation
+
+Inputs:
+    - spike trains (with binning) 
+    - external input
+Outputs:
+    - firing rates
+
+Loss:
+    - Poisson log-likelihood
+
+Initialization:
+    - random weights
+    - random biases
+    - random initial conditions
+
+Start prior to stim so initial conditions don't matter as much
 """
 
 # Import common packages

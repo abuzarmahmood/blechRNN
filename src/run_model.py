@@ -1,3 +1,8 @@
+"""
+Code to run the model on the data
+and generate outputs
+"""
+
 ############################################################
 # Load data
 import sys

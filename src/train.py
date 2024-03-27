@@ -1,23 +1,5 @@
 """
-Recurrent neural network for firing rate estimation
-
-Inputs:
-    - spike trains (with binning) 
-    - external input
-Outputs:
-    - firing rates
-
-Loss:
-    - Poisson log-likelihood
-
-Initialization:
-    - random weights
-    - random biases
-    - random initial conditions
-
-Start prior to stim so initial conditions don't matter as much
-
-Use ReLU in output layer to ensure positive firing rates
+Class to handle model training and prediction
 """ 
 
 ############################################################
