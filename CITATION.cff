@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: blechRNN
+message: Estimating neural firing rates using LSTM
+type: software
+authors:
+  - given-names: Abuzar
+    family-names: Mahmood
+    email: abuzarmahmood@gmail.com
+    affiliation: Brandeis University
+    orcid: 'https://orcid.org/0000-0002-2448-4818'
+repository-code: 'https://github.com/abuzarmahmood/blechRNN'
+keywords:
+  - time-series modelling
+  - latent neural population modelling
+  - recurrent neural networks
+  - pytorch
+license: GPL-3.0
+commit: '9e5632d '
