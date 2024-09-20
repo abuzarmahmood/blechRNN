@@ -7,19 +7,29 @@ and generate outputs
 # Load data
 import sys
 import os
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+import torch
+
+sys.path.append('/media/bigdata/firing_space_plot/modelling/blechRNN/src')
+from model import autoencoderRNN
+from train import train_model
+
 sys.path.append('/media/bigdata/firing_space_plot/ephys_data')
 from ephys_data import ephys_data
 import visualize as vz
 
-plot_dir = '/media/bigdata/firing_space_plot/modelling/pytorch_rnn/plots'
+base_dir =  '/media/bigdata/firing_space_plot/modelling/pytorch_rnn/'
+plot_dir = os.path.join(plot_dir, 'plots')
 if not os.path.exists(plot_dir):
     os.makedirs(plot_dir)
 
-artifacts_dir = '/media/bigdata/firing_space_plot/modelling/pytorch_rnn/artifacts'
+artifacts_dir = os.path.join(base_dir, 'artifacts')
 if not os.path.exists(artifacts_dir):
     os.makedirs(artifacts_dir)
 
-data_dir = '/media/storage/gc_only/AM34/AM34_4Tastes_201217_114556' 
+data_dir = '/media/bigdata/Abuzar_Data/bla_gc/AM11/AM11_4Tastes_191030_114043_copy'
 dat = ephys_data(data_dir)
 dat.firing_rate_params = dat.default_firing_params
 dat.get_spikes()
@@ -31,10 +41,15 @@ cat_spikes = np.concatenate(spike_array)
 
 # Bin spikes
 bin_size = 25
+# (tastes x trials, neurons, time)
+# for example : (120, 35, 280)
 binned_spikes = np.reshape(cat_spikes, 
                            (*cat_spikes.shape[:2], -1, bin_size)).sum(-1)
 
 # Reshape to (seq_len, batch, input_size)
+# seq_len = time
+# batch = trials
+# input_size = neurons
 inputs = binned_spikes.copy()
 inputs = np.moveaxis(inputs, -1, 0)
 
@@ -54,20 +69,25 @@ inputs_long = scaler.fit_transform(inputs_long)
 # Perform PCA and get 95% explained variance
 pca_obj = PCA(n_components=0.95)
 inputs_pca = pca_obj.fit_transform(inputs_long)
+n_components = inputs_pca.shape[-1]
 
 # Scale the PCA outputs
 pca_scaler = StandardScaler()
 inputs_pca = pca_scaler.fit_transform(inputs_pca)
 
 inputs_trial_pca = inputs_pca.reshape(inputs.shape[0], -1, n_components)
+
+# shape: (time, trials, pca_components)
 inputs = inputs_trial_pca.copy()
 
 ##############################
 
 # Add stim time as external input
-stim_time = np.zeros_like(taste_number)
+# Shape: (time, trials, 1)
+stim_time = np.zeros((inputs.shape[0], inputs.shape[1]))
 stim_time[:, 2000//bin_size] = 1
 
+# Shape: (time, trials, pca_components + 1)
 inputs_plus_context = np.concatenate(
         [
             inputs, 
@@ -80,13 +100,12 @@ inputs_plus_context = np.concatenate(
 ############################################################
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-input_size = inputs.shape[-1] + 1 # Add 2 for taste, and stim-t
-output_size = inputs.shape[-1] 
+input_size = inputs_plus_context.shape[-1] 
+output_size = inputs_plus_context.shape[-1] -1 # We don't want to predict the stim time
 
 # Instead of predicting activity in the SAME time-bin,
 # predict activity in the NEXT time-bin
-# Hoping that this will make the model more robust to
-# small fluctuations in activity
+# Forcing the model to learn temporal dependencies
 inputs_plus_context = inputs_plus_context[:-1]
 inputs = inputs[1:]
 
@@ -117,13 +136,16 @@ test_labels = test_labels.to(device)
 ##############################
 # Train 
 ##############################
+# Hidden size of 8 was tested to be optimal across multiple datasets
 hidden_size = 8
-loss = 'mse'
+# mse loss performs better than poisson loss
+loss_name = 'mse'
 
 net = autoencoderRNN( 
         input_size=input_size,
         hidden_size= hidden_size, 
         output_size=output_size,
+        rnn_layers = 2,
         dropout = 0.2,
         )
 net.to(device)
@@ -131,38 +153,26 @@ net, loss, cross_val_loss = train_model(
         net, 
         train_inputs, 
         train_labels, 
+        output_size = output_size,
         lr = 0.001, 
         train_steps = 15000,
-        loss = loss, 
+        loss = loss_name, 
         test_inputs = test_inputs,
         test_labels = test_labels,
         )
 
-model_name = f'hidden_{hidden_size}_loss_{loss}'
+model_name = f'hidden_{hidden_size}_loss_{loss_name}'
 torch.save(net, os.path.join(artifacts_dir, f'{model_name}.pt'))
 
 # Make plots
 fig, ax = plt.subplots()
-for ind, loss in enumerate(loss_list):
-    ax.plot(loss, label = model_name) 
+ax.plot(loss, label = 'Train Loss') 
+ax.plot(cross_val_loss.keys(), cross_val_loss.values(), label = 'Test Loss')
 ax.legend(
         bbox_to_anchor=(1.05, 1), 
         loc='upper left', borderaxespad=0.)
 ax.set_title(f'Losses') 
 fig.savefig(os.path.join(plot_dir,'run_loss.png'),
-            bbox_inches = 'tight')
-plt.close(fig)
-
-# Plot another figure of cross_val_loss
-fig, ax = plt.subplots()
-for ind, loss in enumerate(cross_val_loss_list):
-    ax.plot(loss.keys(), loss.values(),
-            label = model_name) 
-ax.legend(
-        bbox_to_anchor=(1.05, 1),
-        loc='upper left', borderaxespad=0.)
-ax.set_title(f'Cross Val Losses') 
-fig.savefig(os.path.join(plot_dir,'cross_val_loss.png'),
             bbox_inches = 'tight')
 plt.close(fig)
 

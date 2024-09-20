@@ -35,6 +35,7 @@ def train_model(
         net, 
         inputs, 
         labels, 
+        output_size,
         train_steps = 1000, 
         lr=0.01, 
         delta_loss = 0.01,
