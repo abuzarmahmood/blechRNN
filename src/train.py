@@ -58,6 +58,9 @@ class smooth_MSELoss(nn.Module):
         loss = self.loss1(input, target) + self.mean_diffrence(input)
         return loss
 
+def MSELoss():
+    return nn.MSELoss()
+
 def train_model(
         net, 
         inputs, 
@@ -67,7 +70,7 @@ def train_model(
         lr=0.01, 
         delta_loss = 0.01,
         device = None,
-        loss = 'poisson',
+        criterion = MSELoss(), 
         test_inputs = None,
         test_labels = None,
         ):
@@ -84,8 +87,6 @@ def train_model(
     """
     # Use Adam optimizer
     optimizer = optim.Adam(net.parameters(), lr=lr)
-    # criterion = nn.MSELoss()
-    criterion = smooth_MSELoss()
 
     cross_val_bool = np.logical_and(
             test_inputs is not None, 
@@ -107,7 +108,6 @@ def train_model(
         optimizer.zero_grad()   # zero the gradient buffers
         output, _ = net(inputs)
         # # Reshape to (SeqLen x Batch, OutputSize)
-        # output = output.reshape(-1, output_size)
         loss = criterion(output, labels)
         loss.backward()
         optimizer.step()    # Does the update
