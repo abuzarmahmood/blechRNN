@@ -32,6 +32,36 @@ from torch.nn import functional as F
 import math
 from scipy.stats import poisson, zscore
 
+class smooth_MSELoss(nn.Module):
+    """
+    MSE loss with temporal smoothness constraint
+    """
+
+    def __init__(self, alpha=0.05):
+        super(smooth_MSELoss, self).__init__()
+        self.loss1 = nn.MSELoss()
+        self.alpha = alpha
+
+    def mean_diffrence(self, x):
+        """
+        Calculate the mean difference between adjacent elements
+
+        Args:
+            x: (seq_len, batch, output_size)
+        """
+        return torch.mean(torch.abs(x[1:] - x[:-1])) * self.alpha
+
+    def forward(self, input, target):
+        """
+        Args:
+            input: (seq_len,batch, output_size)
+            target: (seq_len,batch, output_size)
+        """
+        loss = self.loss1(input, target) + self.mean_diffrence(input)
+        return loss
+
+def MSELoss():
+    return nn.MSELoss()
 
 def train_model(
         net, 
@@ -42,7 +72,7 @@ def train_model(
         lr=0.01, 
         delta_loss = 0.01,
         device = None,
-        loss = 'poisson',
+        criterion = MSELoss(), 
         test_inputs = None,
         test_labels = None,
         ):
@@ -59,7 +89,6 @@ def train_model(
     """
     # Use Adam optimizer
     optimizer = optim.Adam(net.parameters(), lr=lr)
-    criterion = nn.MSELoss()
 
     cross_val_bool = np.logical_and(
             test_inputs is not None, 
@@ -74,14 +103,13 @@ def train_model(
     # Loop over training batches
     print('Training network...')
     for i in range(train_steps):
-        labels = labels.reshape(-1, output_size)
+        # labels = labels.reshape(-1, output_size)
 
 
         # boiler plate pytorch training:
         optimizer.zero_grad()   # zero the gradient buffers
         output, _ = net(inputs)
-        # Reshape to (SeqLen x Batch, OutputSize)
-        output = output.reshape(-1, output_size)
+        # # Reshape to (SeqLen x Batch, OutputSize)
         loss = criterion(output, labels)
         loss.backward()
         optimizer.step()    # Does the update

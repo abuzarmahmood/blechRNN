@@ -152,6 +152,7 @@ class autoencoderRNN(nn.Module):
             output_size, 
             rnn_layers = 1,
             dropout = 0.2,
+            bidirectional = False,
             ):
         """
         3 sigmoid layers for input and output each, to project between:
@@ -171,7 +172,7 @@ class autoencoderRNN(nn.Module):
                 hidden_size, 
                 rnn_layers, 
                 batch_first=False, 
-                bidirectional=False,
+                bidirectional=bidirectional,
                 dropout = dropout,
                 )
         self.decoder = nn.Sequential(
