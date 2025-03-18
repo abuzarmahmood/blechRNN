@@ -14,7 +14,9 @@ from sklearn.decomposition import PCA, NMF
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 from sklearn.metrics import explained_variance_score, r2_score
 import sys
-src_dir = '/media/bigdata/firing_space_plot/modelling/pytorch_rnn/src'
+import os
+file_path = os.path.abspath(__file__)
+src_dir = os.path.dirname(file_path)
 sys.path.append(src_dir)
 from model import autoencoderRNN
 
