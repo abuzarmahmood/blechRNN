@@ -147,6 +147,7 @@ net = autoencoderRNN(
         output_size=output_size,
         rnn_layers = 2,
         dropout = 0.2,
+        patience=10  # Set patience for early stopping
         )
 net.to(device)
 net, loss, cross_val_loss = train_model(
