@@ -11,6 +11,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import torch
+import matplotlib.pyplot as plt
 
 sys.path.append('/media/bigdata/firing_space_plot/modelling/blechRNN/src')
 from model import autoencoderRNN
@@ -21,7 +22,7 @@ from ephys_data import ephys_data
 import visualize as vz
 
 base_dir =  '/media/bigdata/firing_space_plot/modelling/pytorch_rnn/'
-plot_dir = os.path.join(plot_dir, 'plots')
+plot_dir = os.path.join(base_dir, 'plots')
 if not os.path.exists(plot_dir):
     os.makedirs(plot_dir)
 
@@ -141,6 +142,7 @@ hidden_size = 8
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
+model_name = f'hidden_{hidden_size}_loss_{loss_name}'
 net = autoencoderRNN( 
         input_size=input_size,
         hidden_size= hidden_size, 
