@@ -75,6 +75,7 @@ def train_model(
         criterion = MSELoss(), 
         test_inputs = None,
         test_labels = None,
+        save_path='best_model.pt'  # New parameter for saving model
         ):
     """Simple helper function to train the model.
 
@@ -100,7 +101,7 @@ def train_model(
     running_loss = 0
     running_acc = 0
     start_time = time.time()
-    # Loop over training batches
+    best_cross_val_loss = float('inf')  # Initialize best loss
     print('Training network...')
     for i in range(train_steps):
         # labels = labels.reshape(-1, output_size)
@@ -123,7 +124,9 @@ def train_model(
             test_loss = criterion(test_out, test_labels)
             cross_val_loss[i] = test_loss.item()
             cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
-        else:
+            if test_loss.item() < best_cross_val_loss:
+                best_cross_val_loss = test_loss.item()
+                torch.save(net.state_dict(), save_path)  # Save best model
             cross_str = ''
 
         # Compute the running loss every 100 steps
