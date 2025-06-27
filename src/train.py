@@ -75,6 +75,7 @@ def train_model(
         criterion = MSELoss(), 
         test_inputs = None,
         test_labels = None,
+        patience=10  # New parameter for early stopping
         ):
     """Simple helper function to train the model.
 
@@ -97,6 +98,8 @@ def train_model(
 
     loss_history = []
     cross_val_loss = {}
+    best_loss = float('inf')
+    patience_counter = 0
     running_loss = 0
     running_acc = 0
     start_time = time.time()
@@ -122,6 +125,17 @@ def train_model(
             test_labels = test_labels.reshape(-1, output_size)
             test_loss = criterion(test_out, test_labels)
             cross_val_loss[i] = test_loss.item()
+            # Early stopping check
+            if test_loss.item() < best_loss:
+                best_loss = test_loss.item()
+                patience_counter = 0
+            else:
+                patience_counter += 1
+
+            if patience_counter >= patience:
+                print(f'Early stopping at step {i+1}')
+                break
+
             cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
         else:
             cross_str = ''
