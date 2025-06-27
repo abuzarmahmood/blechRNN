@@ -149,7 +149,8 @@ net = autoencoderRNN(
         output_size=output_size,
         rnn_layers = 2,
         dropout = 0.2,
-        save_path=os.path.join(artifacts_dir, f'best_{model_name}.pt')  # Specify save path
+        save_path=os.path.join(artifacts_dir, f'best_{model_name}.pt'),  # Specify save path
+        patience=10  # Set patience for early stopping
         )
 net.to(device)
 net, loss, cross_val_loss = train_model(
