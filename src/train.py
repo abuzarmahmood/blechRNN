@@ -125,7 +125,15 @@ def train_model(
             test_out = test_out.reshape(-1, output_size)
             test_labels = test_labels.reshape(-1, output_size)
             test_loss = criterion(test_out, test_labels)
+
+            # Save best model before checking for early stopping
+            cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
+            if test_loss.item() < best_cross_val_loss:
+                best_cross_val_loss = test_loss.item()
+                torch.save(net.state_dict(), save_path)  # Save best model
+            cross_str = ''
             cross_val_loss[i] = test_loss.item()
+
             # Early stopping check
             if test_loss.item() < best_loss:
                 best_loss = test_loss.item()
@@ -137,11 +145,6 @@ def train_model(
                 print(f'Early stopping at step {i+1}')
                 break
 
-            cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
-            if test_loss.item() < best_cross_val_loss:
-                best_cross_val_loss = test_loss.item()
-                torch.save(net.state_dict(), save_path)  # Save best model
-            cross_str = ''
 
         # Compute the running loss every 100 steps
         current_loss = loss.item()
