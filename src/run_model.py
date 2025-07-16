@@ -142,12 +142,14 @@ hidden_size = 8
 # mse loss performs better than poisson loss
 loss_name = 'mse'
 
+model_name = f'hidden_{hidden_size}_loss_{loss_name}'
 net = autoencoderRNN( 
         input_size=input_size,
         hidden_size= hidden_size, 
         output_size=output_size,
         rnn_layers = 2,
         dropout = 0.2,
+        save_path=os.path.join(artifacts_dir, f'best_{model_name}.pt'),  # Specify save path
         patience=10  # Set patience for early stopping
         )
 net.to(device)

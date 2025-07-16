@@ -75,6 +75,7 @@ def train_model(
         criterion = MSELoss(), 
         test_inputs = None,
         test_labels = None,
+        save_path='best_model.pt',  # New parameter for saving model
         patience=10  # New parameter for early stopping
         ):
     """Simple helper function to train the model.
@@ -103,7 +104,7 @@ def train_model(
     running_loss = 0
     running_acc = 0
     start_time = time.time()
-    # Loop over training batches
+    best_cross_val_loss = float('inf')  # Initialize best loss
     print('Training network...')
     for i in range(train_steps):
         # labels = labels.reshape(-1, output_size)
@@ -124,7 +125,15 @@ def train_model(
             test_out = test_out.reshape(-1, output_size)
             test_labels = test_labels.reshape(-1, output_size)
             test_loss = criterion(test_out, test_labels)
+
+            # Save best model before checking for early stopping
+            cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
+            if test_loss.item() < best_cross_val_loss:
+                best_cross_val_loss = test_loss.item()
+                torch.save(net.state_dict(), save_path)  # Save best model
+            cross_str = ''
             cross_val_loss[i] = test_loss.item()
+
             # Early stopping check
             if test_loss.item() < best_loss:
                 best_loss = test_loss.item()
@@ -136,9 +145,6 @@ def train_model(
                 print(f'Early stopping at step {i+1}')
                 break
 
-            cross_str = f'Cross Val Loss: {test_loss.item():0.4f}'
-        else:
-            cross_str = ''
 
         # Compute the running loss every 100 steps
         current_loss = loss.item()
