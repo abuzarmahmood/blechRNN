@@ -153,6 +153,7 @@ class autoencoderRNN(nn.Module):
             rnn_layers = 1,
             dropout = 0.2,
             bidirectional = False,
+            strictly_positive = False,
             ):
         """
         3 sigmoid layers for input and output each, to project between:
@@ -179,6 +180,7 @@ class autoencoderRNN(nn.Module):
                 nn.Linear(hidden_size, sum((hidden_size, output_size))//2),
                 nn.Sigmoid(),
                 nn.Linear(sum((hidden_size, output_size))//2, output_size),
+                nn.ReLU() if strictly_positive else nn.Identity()  # Use ReLU if strictly_positive is True
                 )
         self.en_dropout = nn.Dropout(p = dropout)
 
