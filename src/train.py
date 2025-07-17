@@ -135,15 +135,16 @@ def train_model(
             cross_val_loss[i] = test_loss.item()
 
             # Early stopping check
-            if test_loss.item() < best_loss:
-                best_loss = test_loss.item()
-                patience_counter = 0
-            else:
-                patience_counter += 1
+            if patience is not None:
+                if test_loss.item() < best_loss:
+                    best_loss = test_loss.item()
+                    patience_counter = 0
+                else:
+                    patience_counter += 1
 
-            if patience_counter >= patience:
-                print(f'Early stopping at step {i+1}')
-                break
+                if patience_counter >= patience:
+                    print(f'Early stopping at step {i+1}')
+                    break
 
 
         # Compute the running loss every 100 steps
