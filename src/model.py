@@ -153,7 +153,7 @@ class autoencoderRNN(nn.Module):
             rnn_layers = 1,
             dropout = 0.2,
             bidirectional = False,
-            strictly_positive = False  # New parameter
+            strictly_positive = False,
             ):
         """
         3 sigmoid layers for input and output each, to project between:
