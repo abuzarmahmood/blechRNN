@@ -76,7 +76,8 @@ def train_model(
         test_inputs = None,
         test_labels = None,
         save_path='best_model.pt',  # New parameter for saving model
-        patience=10  # New parameter for early stopping
+        patience=10,  # New parameter for early stopping
+        l1_lambda=None  # New parameter for L1 regularization
         ):
     """Simple helper function to train the model.
 
@@ -114,7 +115,11 @@ def train_model(
         optimizer.zero_grad()   # zero the gradient buffers
         output, _ = net(inputs)
         # # Reshape to (SeqLen x Batch, OutputSize)
+        # Calculate loss with optional L1 regularization
         loss = criterion(output, labels)
+        if l1_lambda is not None:
+            l1_norm = sum(p.abs().sum() for p in net.parameters())
+            loss += l1_lambda * l1_norm
         loss.backward()
         optimizer.step()    # Does the update
 
