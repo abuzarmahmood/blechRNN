@@ -77,7 +77,8 @@ def train_model(
         test_labels = None,
         save_path='best_model.pt',  # New parameter for saving model
         patience=10,  # New parameter for early stopping
-        l1_lambda=None  # New parameter for L1 regularization
+        l1_lambda=None,  # New parameter for L1 regularization
+        regularize_parts=None  # New parameter to specify parts to regularize
         ):
     """Simple helper function to train the model.
 
@@ -118,7 +119,10 @@ def train_model(
         # Calculate loss with optional L1 regularization
         loss = criterion(output, labels)
         if l1_lambda is not None:
-            l1_norm = sum(p.abs().sum() for p in net.parameters())
+            if regularize_parts is not None:
+                l1_norm = sum(p.abs().sum() for name, p in net.named_parameters() if any(part in name for part in regularize_parts))
+            else:
+                l1_norm = sum(p.abs().sum() for p in net.parameters())
             loss += l1_lambda * l1_norm
         loss.backward()
         optimizer.step()    # Does the update
