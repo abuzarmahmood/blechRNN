@@ -221,17 +221,16 @@ class LatentPoolCTRNN(nn.Module):
             num_stimulus_types=4,
             dt=None,
             dropout=0.2,
-            strictly_positive=True,
     ):
         super(LatentPoolCTRNN, self).__init__()
         
         self.max_observed_neurons = max_observed_neurons
         self.latent_size = latent_size
         self.num_stimulus_types = num_stimulus_types
-        self.strictly_positive = strictly_positive
         
         # Encoder: maps observed neurons + stimulus info to latent space
         # Input: observed_neurons + num_stimulus_types (one-hot) + 1 (concentration)
+        # All activations are ReLU to ensure strictly positive rates
         encoder_input_size = max_observed_neurons + num_stimulus_types + 1
         
         self.encoder = nn.Sequential(
@@ -251,12 +250,13 @@ class LatentPoolCTRNN(nn.Module):
         )
         
         # Decoder: maps latent space back to observed neurons
+        # All activations are ReLU to ensure strictly positive firing rates
         self.decoder = nn.Sequential(
             nn.Linear(latent_size, (latent_size + max_observed_neurons) // 2),
             nn.ReLU(),
             nn.Dropout(p=dropout),
             nn.Linear((latent_size + max_observed_neurons) // 2, max_observed_neurons),
-            nn.ReLU() if strictly_positive else nn.Identity(),
+            nn.ReLU(),
         )
         
     def forward(self, spike_counts, stimulus_type, stimulus_concentration, mask=None):

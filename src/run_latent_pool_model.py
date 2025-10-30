@@ -220,8 +220,7 @@ def main():
         latent_size=latent_size,
         num_stimulus_types=num_stimulus_types,
         dt=10,  # 10ms time step
-        dropout=0.2,
-        strictly_positive=True
+        dropout=0.2
     )
     
     print(f"   - Latent neurons: {latent_size}")
