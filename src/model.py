@@ -176,13 +176,20 @@ class autoencoderRNN(nn.Module):
                 bidirectional=bidirectional,
                 dropout = dropout,
                 )
+        # Refer to: https://docs.pytorch.org/docs/stable/generated/torch.nn.RNN.html#:~:text=output%3A%20tensor%20of%20shape
+        bidirectional_factor = 2 if bidirectional else 1
         self.decoder = nn.Sequential(
-                nn.Linear(hidden_size, sum((hidden_size, output_size))//2),
+                nn.Linear(hidden_size*bidirectional_factor, sum((hidden_size, output_size))//2),
                 nn.Sigmoid(),
                 nn.Linear(sum((hidden_size, output_size))//2, output_size),
                 nn.ReLU() if strictly_positive else nn.Identity()  # Use ReLU if strictly_positive is True
                 )
         self.en_dropout = nn.Dropout(p = dropout)
+
+        # # Check that input and outputs of all layers line up
+        # assert self.encoder[-1].out_features == self.rnn.input_size, "Encoder output size must match RNN input size"
+        # assert self.rnn.hidden_size == self.decoder[0].in_features, "RNN hidden size must match decoder input size"
+        # print(f"Initialized autoencoderRNN with encoder input size {input_size}, hidden size {hidden_size}, and output size {output_size}")
 
     def forward(self, x):
         out = self.encoder(x)

@@ -1,0 +1,2 @@
+['remote "s3"']
+    url = s3://abu-dvc-store/auto-slide
