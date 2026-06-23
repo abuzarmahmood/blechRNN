@@ -191,3 +191,105 @@ class autoencoderRNN(nn.Module):
         out = self.decoder(latent_out)
         return out, latent_out
 
+
+class LatentPoolCTRNN(nn.Module):
+    """
+    CTRNN with a large pool of latent neurons that can handle:
+    - Multiple recording datasets with variable numbers of observed neurons
+    - Multiple stimulus neurons indicating stimulus type
+    - Continuous input for stimulus concentration
+    - Estimation of smooth firing rates from binned spike counts
+    
+    Architecture:
+        - Flexible encoder: maps variable-size neural observations to fixed latent space
+        - Stimulus encoder: processes stimulus type and concentration
+        - Large latent CTRNN: learns shared dynamics across datasets
+        - Flexible decoder: maps latent space back to variable-size neural observations
+    
+    Parameters:
+        max_observed_neurons: Maximum number of observed neurons across datasets
+        latent_size: Number of latent neurons (should be large, e.g., 128-512)
+        num_stimulus_types: Number of different stimulus types
+        dt: Time step for CTRNN dynamics
+        dropout: Dropout rate for regularization
+    """
+    
+    def __init__(
+            self,
+            max_observed_neurons,
+            latent_size=256,
+            num_stimulus_types=4,
+            dt=None,
+            dropout=0.2,
+    ):
+        super(LatentPoolCTRNN, self).__init__()
+        
+        self.max_observed_neurons = max_observed_neurons
+        self.latent_size = latent_size
+        self.num_stimulus_types = num_stimulus_types
+        
+        # Encoder: maps observed neurons + stimulus info to latent space
+        # Input: observed_neurons + num_stimulus_types (one-hot) + 1 (concentration)
+        # All activations are ReLU to ensure strictly positive rates
+        encoder_input_size = max_observed_neurons + num_stimulus_types + 1
+        
+        self.encoder = nn.Sequential(
+            nn.Linear(encoder_input_size, (encoder_input_size + latent_size) // 2),
+            nn.ReLU(),
+            nn.Dropout(p=dropout),
+            nn.Linear((encoder_input_size + latent_size) // 2, latent_size),
+            nn.ReLU(),
+            nn.Dropout(p=dropout),
+        )
+        
+        # Large latent CTRNN
+        self.ctrnn = CTRNN(
+            input_size=latent_size,
+            hidden_size=latent_size,
+            dt=dt
+        )
+        
+        # Decoder: maps latent space back to observed neurons
+        # All activations are ReLU to ensure strictly positive firing rates
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_size, (latent_size + max_observed_neurons) // 2),
+            nn.ReLU(),
+            nn.Dropout(p=dropout),
+            nn.Linear((latent_size + max_observed_neurons) // 2, max_observed_neurons),
+            nn.ReLU(),
+        )
+        
+    def forward(self, spike_counts, stimulus_type, stimulus_concentration, mask=None):
+        """
+        Forward pass through the network.
+        
+        Args:
+            spike_counts: (seq_len, batch, max_observed_neurons) - binned spike counts
+                         Can be padded with zeros for datasets with fewer neurons
+            stimulus_type: (seq_len, batch, num_stimulus_types) - one-hot encoded stimulus type
+            stimulus_concentration: (seq_len, batch, 1) - continuous stimulus concentration
+            mask: (batch, max_observed_neurons) - binary mask indicating which neurons are observed
+                  1 for observed neurons, 0 for padding. If None, all neurons are considered observed.
+        
+        Returns:
+            firing_rates: (seq_len, batch, max_observed_neurons) - estimated smooth firing rates
+            latent_activity: (seq_len, batch, latent_size) - latent neuron activity
+        """
+        # Concatenate all inputs
+        encoder_input = torch.cat([spike_counts, stimulus_type, stimulus_concentration], dim=-1)
+        
+        # Encode to latent space
+        latent_input = self.encoder(encoder_input)
+        
+        # Process through CTRNN
+        latent_activity, _ = self.ctrnn(latent_input)
+        
+        # Decode back to firing rates
+        firing_rates = self.decoder(latent_activity)
+        
+        # Apply mask if provided (zero out non-observed neurons)
+        if mask is not None:
+            firing_rates = firing_rates * mask.unsqueeze(0)
+        
+        return firing_rates, latent_activity
+
